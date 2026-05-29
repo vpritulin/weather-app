@@ -1,181 +1,129 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ExternalLink } from '@/components/external-link';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { WeatherObservationForm } from '@/features/weather/components/weather-observation-form';
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
-  const theme = useTheme();
+const WEATHERBIT_API_KEY = process.env.EXPO_PUBLIC_WEATHERBIT_API_KEY?.trim() ?? '';
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
-
+export default function SetupScreen() {
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
-
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
-
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
+    <ThemedView style={styles.screen}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <ThemedView style={styles.container}>
+            <ThemedView style={styles.headerCard}>
+              <View style={styles.headerTop}>
+                <View style={styles.headerTitleGroup}>
+                  <ThemedText type="title" style={styles.title}>
+                    Ukraine weather setup
+                  </ThemedText>
+                  <ThemedText themeColor="textSecondary">Configuration and data source</ThemedText>
+                </View>
+                <ThemeToggle variant="header" />
+              </View>
+              <ThemedText themeColor="textSecondary">
+                The app requests your current location or lets you search a Ukrainian city, then
+                loads current weather and a 7-day forecast from Weatherbit in English.
               </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
             </ThemedView>
-          </Collapsible>
 
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+            <ThemedView type="backgroundElement" style={styles.sectionCard}>
+              <ThemedText type="subtitle">Configuration</ThemedText>
+              <ThemedText>
+                1. Copy <ThemedText type="code">.env.example</ThemedText> to{' '}
+                <ThemedText type="code">.env</ThemedText>
+              </ThemedText>
+              <ThemedText>
+                2. Add <ThemedText type="code">EXPO_PUBLIC_WEATHERBIT_API_KEY</ThemedText>
+              </ThemedText>
+              <ThemedText>
+                3. Restart Expo after changing environment variables
+              </ThemedText>
+              <ThemedText themeColor="textSecondary">
+                API key status: {WEATHERBIT_API_KEY ? 'configured' : 'missing'}
+              </ThemedText>
+            </ThemedView>
 
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+            <ThemedView type="backgroundElement" style={styles.sectionCard}>
+              <ThemedText type="subtitle">What the app does</ThemedText>
+              <ThemedText>Uses foreground location permission on iOS.</ThemedText>
+              <ThemedText>Requests current weather from Weatherbit using lat/lon.</ThemedText>
+              <ThemedText>Loads daily forecast data and renders a 7-day chart.</ThemedText>
+              <ThemedText>Supports autocomplete for Ukrainian city search.</ThemedText>
+              <ThemedText>Highlights whether the detected location is inside Ukraine.</ThemedText>
+              <ThemedText>Supports pull to refresh and manual refresh.</ThemedText>
+            </ThemedView>
 
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+            <WeatherObservationForm />
+
+            <ThemedView type="backgroundElement" style={styles.sectionCard}>
+              <ThemedText type="subtitle">Weatherbit endpoints</ThemedText>
+              <ThemedText type="code" style={styles.endpoint}>
+                https://api.weatherbit.io/v2.0/current?lat=...&lon=...&lang=en&units=M
+              </ThemedText>
+              <ThemedText type="code" style={styles.endpoint}>
+                https://api.weatherbit.io/v2.0/forecast/daily?lat=...&lon=...&lang=en&units=M
+              </ThemedText>
+              <ExternalLink href="https://www.weatherbit.io/api/weather-current">
+                <ThemedText type="linkPrimary">Open Weatherbit current weather docs</ThemedText>
+              </ExternalLink>
+              <ExternalLink href="https://www.weatherbit.io/api/weather-forecast-16-day">
+                <ThemedText type="linkPrimary">Open Weatherbit daily forecast docs</ThemedText>
+              </ExternalLink>
+            </ThemedView>
+          </ThemedView>
+        </ScrollView>
+      </SafeAreaView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
+  screen: {
     flex: 1,
   },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  safeArea: {
+    flex: 1,
   },
-  container: {
-    maxWidth: MaxContentWidth,
+  scrollContent: {
     flexGrow: 1,
   },
-  titleContainer: {
-    gap: Spacing.three,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
-  },
-  centerText: {
-    textAlign: 'center',
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
+  container: {
     width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
+    maxWidth: MaxContentWidth,
     alignSelf: 'center',
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.three,
+    paddingBottom: BottomTabInset + Spacing.four,
+    gap: Spacing.three,
+  },
+  headerCard: {
+    gap: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  headerTop: {
+    alignItems: 'stretch',
+    gap: Spacing.three,
+  },
+  headerTitleGroup: {
+    gap: Spacing.one,
+  },
+  title: {
+    fontSize: 32,
+    lineHeight: 38,
+  },
+  sectionCard: {
+    borderRadius: 28,
+    padding: Spacing.three,
+    gap: Spacing.two,
+  },
+  endpoint: {
+    lineHeight: 18,
   },
 });

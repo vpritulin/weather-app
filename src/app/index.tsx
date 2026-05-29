@@ -1,98 +1,155 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
+import { ForecastChart } from '@/components/forecast-chart';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+import { CitySearchCard } from '@/features/weather/components/city-search-card';
+import { WeatherDetailsCard } from '@/features/weather/components/weather-details-card';
+import { WeatherErrorCard } from '@/features/weather/components/weather-error-card';
+import { WeatherHero } from '@/features/weather/components/weather-hero';
+import { WeatherMetricsGrid } from '@/features/weather/components/weather-metrics-grid';
+import { WeatherRefreshCard } from '@/features/weather/components/weather-refresh-card';
+import { WeatherWarningCard } from '@/features/weather/components/weather-warning-card';
+import { useWeatherScreen } from '@/features/weather/use-weather-screen';
+import { getWeatherSubtitle } from '@/features/weather/utils';
+import { weatherScreenStyles as styles } from '@/features/weather/weather-screen.styles';
 
-export default function HomeScreen() {
+export default function WeatherScreen() {
+  const theme = useTheme();
+  const {
+    state,
+    isRefreshing,
+    manualCity,
+    isManualLoading,
+    showSuggestions,
+    citySuggestions,
+    setManualCity,
+    setShowSuggestions,
+    loadWeatherByLocation,
+    loadWeatherByCity,
+  } = useWeatherScreen();
+
+  const surfaceColor = theme.backgroundElement;
+  const heroColor =
+    state.status === 'ready' && state.weather.pod === 'n' ? theme.heroNight : theme.heroDay;
+  const badgeColor =
+    state.status === 'ready' && state.isInUkraine ? theme.heroBadge : theme.warningBadge;
+  const subtitle = getWeatherSubtitle({
+    status: state.status,
+    source: state.status === 'ready' ? state.source : undefined,
+    weather: state.status === 'ready' ? state.weather : undefined,
+  });
+
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => void loadWeatherByLocation(true)}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+              progressBackgroundColor={theme.backgroundElement}
+            />
+          }>
+          <ThemedView style={[styles.container, { backgroundColor: theme.background }]}>
+            <ThemedView style={styles.pageHeader}>
+              <ThemedView style={styles.headerTitleGroup}>
+                <ThemedText type="subtitle" style={styles.appTitle}>
+                  Ukraine Weather
+                </ThemedText>
+                <ThemedText themeColor="textSecondary" style={styles.appSubtitle}>
+                  Current conditions and forecast
+                </ThemedText>
+              </ThemedView>
+              <ThemeToggle variant="header" />
+            </ThemedView>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+            <WeatherHero
+              status={state.status}
+              heroColor={heroColor}
+              badgeColor={badgeColor}
+              weather={state.status === 'ready' ? state.weather : undefined}
+              subtitle={subtitle}
+              source={state.status === 'ready' ? state.source : undefined}
+              isInUkraine={state.status === 'ready' ? state.isInUkraine : undefined}
+            />
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+            {state.status === 'error' ? (
+              <WeatherErrorCard
+                title={state.title}
+                message={state.message}
+                backgroundColor={surfaceColor}
+                onRetry={() => void loadWeatherByLocation()}
+              />
+            ) : null}
 
-        {Platform.OS === 'web' && <WebBadge />}
+            <CitySearchCard
+              backgroundColor={surfaceColor}
+              inputBackgroundColor={theme.background}
+              inputTextColor={theme.text}
+              inputBorderColor={theme.border}
+              placeholderColor={theme.textSecondary}
+              manualCity={manualCity}
+              suggestions={citySuggestions}
+              showSuggestions={showSuggestions}
+              isManualLoading={isManualLoading}
+              onChangeCity={(value) => {
+                setManualCity(value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onSelectSuggestion={(city) => {
+                setManualCity(city);
+                setShowSuggestions(false);
+              }}
+              onSearch={() => void loadWeatherByCity()}
+              onUseCurrentLocation={() => void loadWeatherByLocation()}
+            />
+
+            {state.status === 'ready' ? (
+              <>
+                {!state.isInUkraine && state.source === 'location' ? (
+                  <WeatherWarningCard
+                    cityName={state.weather.city_name}
+                    countryCode={state.weather.country_code}
+                  />
+                ) : null}
+
+                <WeatherMetricsGrid weather={state.weather} backgroundColor={surfaceColor} />
+
+                <WeatherDetailsCard
+                  weather={state.weather}
+                  backgroundColor={surfaceColor}
+                  requestedCoordinates={state.requestedCoordinates}
+                />
+
+                <ForecastChart
+                  points={state.forecastPoints}
+                  summary="Daily highs, lows, and precipitation chance for the next 7 days."
+                />
+
+                <WeatherRefreshCard
+                  backgroundColor={surfaceColor}
+                  refreshedAt={state.refreshedAt}
+                  onRefresh={() =>
+                    void (state.source === 'manual'
+                      ? loadWeatherByCity()
+                      : loadWeatherByLocation(true))
+                  }
+                />
+              </>
+            ) : null}
+          </ThemedView>
+        </ScrollView>
       </SafeAreaView>
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
-});
